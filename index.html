@@ -3,16 +3,53 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Voice-Controlled Multi-Timer</title>
 <style>
+:root {
+  --time-color: rgba(255, 118, 117, 0.5);
+  --background-color: #000000; /* Default background */
+}
 body {
-  background-color: #000000; /* Coal black */
+  background-color: var(--background-color, #000000); /* Use a variable for background color */
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 20px;
   min-height: 100vh;
 }
+#dateDisplay {
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 24px;
+  font-weight: bold;
+  text-align: center;
+  padding: 10px;
+  border-radius: 10px;
+  z-index: 1000;
+  text-shadow: 0 0 10px currentColor;
+  line-height: 1.2; /* Add this line to adjust line spacing */
+}
+.time-color-strip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 0; /* Start with no height */
+  z-index: -1;
+  opacity: 0.3;
+  transition: background-color 1s linear, height 1s linear;
+  overflow: hidden;
+}
+.star {
+  position: absolute;
+  background-color: #ffffff;
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.5s ease-in-out;
+}
 .container {
-  background-color: #333333; /* Dark gray */
+  background-color: rgba(51, 51, 51, 0.7); /* 70% opacity */
+  backdrop-filter: blur(5px); /* Add blur effect */
   background-image: 
     linear-gradient(45deg, #2b2b2b 25%, transparent 25%), 
     linear-gradient(-45deg, #2b2b2b 25%, transparent 25%), 
@@ -28,6 +65,8 @@ body {
   box-shadow: 0 0 20px rgba(0,0,0,0.2);
   max-width: 800px; /* Increased from 600px */
   margin-top: 20px; /* Reduced from 240px to move it higher */
+  position: relative;
+  z-index: 1; /* Ensure it's above the color strip */
 }
 h1 {
   color: #ffd700; /* Golden color */
@@ -50,7 +89,7 @@ h1 {
 #status { font-size: 18px; margin-bottom: 20px; color: #dfe6e9; }
 #timerList { text-align: left; margin-top: 20px; }
 .timer-item {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.2); /* Increased opacity */
   border: 2px solid #00b894;
   padding: 15px;
   margin-bottom: 15px;
@@ -65,7 +104,12 @@ h1 {
   background-color: rgba(0, 184, 148, 0.2);
   border-color: #00a885;
 }
-.timer-item .time { font-weight: bold; color: #ff7675; }
+.timer-item .time { 
+  font-weight: bold; 
+  color: #ff7675; 
+  font-size: 28px; /* Increased from 24px */
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.7); /* Increased shadow for better visibility */
+}
 .timer-item .command { color: #74b9ff; }
 .slider-container {
   margin-top: 20px;
@@ -99,6 +143,7 @@ h1 {
   display: flex;
   flex-direction: column;
   align-items: flex-end; /* Changed from flex-start */
+  z-index: 2;
 }
 .scales {
   position: absolute;
@@ -106,6 +151,7 @@ h1 {
   left: 20px; /* Move scales to the left side */
   display: flex;
   height: calc(100vh - 40px); /* Full viewport height minus top/bottom margin */
+  z-index: 2;
 }
 .scale {
   width: 30px;
@@ -121,8 +167,8 @@ h1 {
   top: 0; /* Change from bottom to top */
   left: 0;
   width: 100%;
-  background-color: rgba(255, 118, 117, 0.5); /* Semi-transparent #ff7675 */
-  transition: height 1s linear;
+  background-color: var(--time-color);
+  transition: height 1s linear, background-color 1s linear;
   border-radius: 0 0 15px 15px;
 }
 .scale-mark {
@@ -214,10 +260,41 @@ h1 {
   background-color: #dfe6e9;
   transform: translate(-50%, -50%);
 }
+.donation-pointer {
+  position: fixed;
+  bottom: 50px;
+  right: 320px;
+  display: flex;
+  align-items: center;
+  animation: pointerMove 1s ease-in-out infinite; /* Changed from 2s to 1s */
+}
+.arrow {
+  font-size: 24px;
+  margin-right: 10px;
+}
+.pointer-text {
+  font-size: 16px;
+  color: var(--time-color);
+  animation: textMove 1.5s ease-in-out infinite; /* Added separate animation */
+}
+@keyframes pointerMove {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(10px); }
+}
+@keyframes textMove {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+@keyframes pointerMove {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(10px); }
+}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.8.0/suncalc.min.js"></script>
 </head>
 <body>
-  <div class="honeycomb"></div>
+  <div id="dateDisplay"></div>
+  <div class="time-color-strip"></div>
   <div class="clock-container">
     <div class="clock">
       <div class="hand hour"></div>
@@ -263,6 +340,10 @@ h1 {
     </div>
     <div id="timerList"></div>
   </div>
+  <div class="donation-pointer">
+    <div class="arrow">→</div>
+    <div class="pointer-text">From me to you, from you to me</div>
+  </div>
   <div class="donation-info">
     <p>Your support, even a few cents, helps keep this app free. Thank you for being awesome! Peace and goodwill to all.</p>
     <p style="font-size: 12px; word-break: break-all;">ETH address: 0x896d8d26417DfeE7a49B75aa68ac40A23E7F5F2c</p>
@@ -284,6 +365,30 @@ let timers = [];
 let audioContext;
 let gainNode;
 let biquadFilter;
+
+let userLocation = { latitude: 55.7558, longitude: 37.6173 }; // Default to Moscow
+
+function getUserLocation() {
+  if ("geolocation" in navigator) {
+    navigator.geolocation.getCurrentPosition(function(position) {
+      userLocation.latitude = position.coords.latitude;
+      userLocation.longitude = position.coords.longitude;
+    }, function(error) {
+      console.warn("Geolocation error:", error);
+    });
+  }
+}
+
+getUserLocation();
+
+function getSunTimes() {
+  const now = new Date();
+  const times = SunCalc.getTimes(now, userLocation.latitude, userLocation.longitude);
+  return {
+    sunrise: times.sunrise,
+    sunset: times.sunset
+  };
+}
 
 startButton.addEventListener('click', toggleRecording);
 document.addEventListener('keydown', (e) => {
@@ -328,7 +433,7 @@ function startRecording() {
       recorder.startRecording();
       isRecording = true;
       startButton.textContent = 'Stop';
-      statusDisplay.textContent = 'Speak the time for the timer...';
+      statusDisplay.textContent = 'Make any sound'; // Changed from 'Speak the time for the timer...'
     })
     .catch(err => {
       console.warn('Unable to access microphone:', err);
@@ -367,7 +472,7 @@ function stopRecording() {
   recorder.stopRecording(() => {
     isRecording = false;
     startButton.textContent = 'Start';
-    statusDisplay.textContent = 'Processing voice input...';
+    statusDisplay.textContent = 'Speak the time for the timer'; // Changed from 'Processing voice input...'
     
     stream.getTracks().forEach(track => track.stop());
     
@@ -469,38 +574,40 @@ function startTimer(timer) {
 }
 
 function updateTimerList() {
-  requestAnimationFrame(() => {
-    timerList.innerHTML = '';
-    timers.sort((a, b) => b.id - a.id).forEach(timer => {
-      const timerElement = document.createElement('div');
-      timerElement.className = `timer-item ${timer.completed ? 'completed' : ''}`;
-      
-      const remainingTime = Math.max(0, Math.floor((timer.endTime - Date.now()) / 1000));
-      const hours = Math.floor(remainingTime / 3600);
-      const minutes = Math.floor((remainingTime % 3600) / 60);
-      const seconds = remainingTime % 60;
-      
-      timerElement.innerHTML = `
+  const timerListHTML = timers.sort((a, b) => b.id - a.id).map(timer => {
+    const remainingTime = Math.max(0, Math.floor((timer.endTime - Date.now()) / 1000));
+    const hours = Math.floor(remainingTime / 3600);
+    const minutes = Math.floor((remainingTime % 3600) / 60);
+    const seconds = remainingTime % 60;
+    
+    return `
+      <div class="timer-item ${timer.completed ? 'completed' : ''}" data-id="${timer.id}">
         <span class="command">${timer.command}</span>
         <span class="time">${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}</span>
-      `;
-      
-      let longPressTimer;
-      timerElement.addEventListener('mousedown', () => {
-        longPressTimer = setTimeout(() => {
-          removeTimer(timer.id);
-        }, 2000); // Changed to 2 seconds
-      });
-      
-      timerElement.addEventListener('mouseup', () => {
-        clearTimeout(longPressTimer);
-      });
-      
-      timerElement.addEventListener('dblclick', () => {
+      </div>
+    `;
+  }).join('');
+  
+  timerList.innerHTML = timerListHTML;
+  
+  document.querySelectorAll('.timer-item').forEach(item => {
+    let longPressTimer;
+    
+    item.addEventListener('mousedown', () => {
+      longPressTimer = setTimeout(() => {
+        removeTimer(parseInt(item.dataset.id));
+      }, 2000);
+    });
+    
+    item.addEventListener('mouseup', () => {
+      clearTimeout(longPressTimer);
+    });
+    
+    item.addEventListener('dblclick', () => {
+      const timer = timers.find(t => t.id === parseInt(item.dataset.id));
+      if (timer) {
         restartTimer(timer);
-      });
-      
-      timerList.appendChild(timerElement);
+      }
     });
   });
 }
@@ -601,6 +708,116 @@ const updateInterval = setInterval(() => {
 
 updateClock(); // Initial call to set the clock immediately
 
+function updateScaleColor() {
+  const now = new Date();
+  const sunTimes = getSunTimes();
+  
+  const { sunrise, sunset } = sunTimes;
+  
+  let timeOfDay;
+  if (now < sunrise) {
+    timeOfDay = (now - new Date(now.setHours(0,0,0,0))) / (sunrise - new Date(now.setHours(0,0,0,0)));
+  } else if (now > sunset) {
+    timeOfDay = 0.75 + (now - sunset) / (new Date(now.setHours(24,0,0,0)) - sunset) * 0.25;
+  } else {
+    timeOfDay = 0.25 + (now - sunrise) / (sunset - sunrise) * 0.5;
+  }
+  
+  const { hue, saturation, lightness, backgroundColor } = calculateColors(timeOfDay);
+  
+  document.documentElement.style.setProperty('--time-color', `hsla(${Math.round(hue)}, ${Math.round(saturation)}%, ${Math.round(lightness)}%, 0.5)`);
+  document.documentElement.style.setProperty('--background-color', backgroundColor);
+  
+  const strip = document.querySelector('.time-color-strip');
+  strip.style.backgroundColor = `hsla(${Math.round(hue)}, ${Math.round(saturation)}%, ${Math.round(lightness)}%, 0.5)`;
+  strip.style.height = `${(timeOfDay * 100).toFixed(2)}%`;
+  
+  const container = document.querySelector('.container');
+  container.style.backgroundColor = `rgba(51, 51, 51, ${0.7 - timeOfDay * 0.4})`;
+
+  const dateDisplay = document.getElementById('dateDisplay');
+  dateDisplay.style.color = `hsl(${(hue + 180) % 360}, ${saturation}%, ${100 - lightness}%)`;
+
+  updateStars(timeOfDay);
+}
+
+function calculateColors(timeOfDay) {
+  let hue, saturation, lightness, backgroundColor;
+  
+  if (timeOfDay < 0.25) { // Night to sunrise
+    hue = 240 + (timeOfDay / 0.25) * 20;
+    saturation = 100 - (timeOfDay / 0.25) * 40;
+    lightness = 20 + (timeOfDay / 0.25) * 30;
+    backgroundColor = `hsl(0, 0%, ${timeOfDay * 30}%)`;
+  } else if (timeOfDay < 0.5) { // Sunrise to midday
+    hue = 40 - ((timeOfDay - 0.25) / 0.25) * 40;
+    saturation = 100;
+    lightness = 50 + ((timeOfDay - 0.25) / 0.25) * 30;
+    backgroundColor = `hsl(0, 0%, ${30 + (timeOfDay - 0.25) * 160}%)`;
+  } else if (timeOfDay < 0.75) { // Midday to sunset
+    hue = 200 * ((timeOfDay - 0.5) / 0.25);
+    saturation = 100 - ((timeOfDay - 0.5) / 0.25) * 60;
+    lightness = 80 - ((timeOfDay - 0.5) / 0.25) * 30;
+    backgroundColor = `hsl(0, 0%, ${70 - (timeOfDay - 0.5) * 160}%)`;
+  } else { // Sunset to night
+    hue = 200 + ((timeOfDay - 0.75) / 0.25) * 40;
+    saturation = 40 + ((timeOfDay - 0.75) / 0.25) * 60;
+    lightness = 50 - ((timeOfDay - 0.75) / 0.25) * 30;
+    backgroundColor = `hsl(0, 0%, ${10 - (timeOfDay - 0.75) * 40}%)`;
+  }
+  
+  // Increase saturation and lightness for daytime colors
+  if (timeOfDay >= 0.25 && timeOfDay < 0.75) {
+    saturation = Math.min(100, saturation * 1.2);
+    lightness = Math.min(100, lightness * 1.2);
+  }
+  
+  return { hue, saturation, lightness, backgroundColor };
+}
+
+function createStars() {
+  const strip = document.querySelector('.time-color-strip');
+  for (let i = 0; i < 50; i++) {
+    const star = document.createElement('div');
+    star.className = 'star';
+    star.style.left = `${Math.random() * 100}%`;
+    star.style.top = `${Math.random() * 100}%`;
+    star.style.width = `${Math.random() * 2 + 1}px`;
+    star.style.height = star.style.width;
+    strip.appendChild(star);
+  }
+}
+
+function updateStars(timeOfDay) {
+  const stars = document.querySelectorAll('.star');
+  const sunTimes = getSunTimes();
+  const sunrise = sunTimes.sunrise;
+  const sunset = sunTimes.sunset;
+  const now = new Date();
+  
+  let visibility;
+  if (now < sunrise || now > sunset) {
+    visibility = 1;
+  } else {
+    const timeSinceSunrise = (now - sunrise) / (1000 * 60 * 60); // Hours since sunrise
+    const timeUntilSunset = (sunset - now) / (1000 * 60 * 60); // Hours until sunset
+    visibility = Math.min(1 - timeSinceSunrise / 2, 1 - timeUntilSunset / 2);
+  }
+  
+  stars.forEach(star => {
+    star.style.opacity = Math.random() * visibility;
+  });
+}
+
+createStars();
+
+setInterval(() => {
+  updateScaleColor();
+}, 1000);
+
+// Initial calls
+updateScaleColor();
+
 function updateScales() {
   const now = new Date();
   const hours = now.getHours();
@@ -682,6 +899,18 @@ function donateETH() {
   const url = `https://metamask.app.link/send/eth?address=${address}`;
   window.open(url, '_blank');
 }
+
+function updateDateDisplay() {
+  const now = new Date();
+  const options = { weekday: 'long', month: 'long', day: 'numeric' };
+  const dateString = now.toLocaleDateString('en-US', options);
+  const [weekday, date] = dateString.split(', ');
+  document.getElementById('dateDisplay').innerHTML = `${weekday}<br>${date}`;
+}
+
+// Call this function initially and set interval
+updateDateDisplay();
+setInterval(updateDateDisplay, 1000 * 60); // Update every minute
 </script>
 </body>
 </html>
