@@ -15,6 +15,15 @@ body {
   padding: 20px;
   min-height: 100vh;
 }
+.time-gradient {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+  pointer-events: none;
+}
 #dateDisplay {
   position: fixed;
   top: 10px;
@@ -135,6 +144,27 @@ h1 {
   max-width: 300px;
   font-size: 14px;
   color: #dfe6e9;
+}
+.donation-info p {
+  margin-bottom: 10px;
+}
+.donation-info .eth-address {
+  font-size: 12px;
+  word-break: break-all;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+.donation-info img {
+  width: 100px;
+  height: 100px;
+  margin: 5px 0;
+}
+.donation-info a {
+  color: #74b9ff;
+  text-decoration: none;
+}
+.donation-info a:hover {
+  text-decoration: underline;
 }
 .clock-container {
   position: absolute;
@@ -293,8 +323,9 @@ h1 {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.8.0/suncalc.min.js"></script>
 </head>
 <body>
-  <div id="dateDisplay"></div>
+  <div class="time-gradient"></div>
   <div class="time-color-strip"></div>
+  <div id="dateDisplay"></div>
   <div class="clock-container">
     <div class="clock">
       <div class="hand hour"></div>
@@ -346,10 +377,13 @@ h1 {
   </div>
   <div class="donation-info">
     <p>Your support, even a few cents, helps keep this app free. Thank you for being awesome! Peace and goodwill to all.</p>
-    <p style="font-size: 12px; word-break: break-all;">ETH address: 0x896d8d26417DfeE7a49B75aa68ac40A23E7F5F2c</p>
-    <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=ethereum:0x896d8d26417DfeE7a49B75aa68ac40A23E7F5F2c" alt="QR Code">
-    <button onclick="donateETH()">Donate with MetaMask</button>
-    <p style="font-size: 12px;">No MetaMask? Use the QR code or copy the address above to donate from any ETH wallet.</p>
+    <p>WebMoney: <a href="https://www.wmtransfer.com/eng/payments/Z954624130446">Z954624130446</a>, <a href="https://www.wmtransfer.com/eng/payments/E315482991904">E315482991904</a></p>
+    <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=Z954624130446" alt="WebMoney Z QR Code">
+    <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=E315482991904" alt="WebMoney E QR Code">
+    <p>PayPal: <a href="https://www.paypal.me/nizenkov11">nizenkov11@gmail.com</a></p>
+    <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://paypal.me/nizenkov11" alt="PayPal QR Code">
+    <p class="eth-address">ETH address: <a href="https://etherscan.io/address/0x896d8d26417DfeE7a49B75aa68ac40A23E7F5F2c">0x896d8d26417DfeE7a49B75aa68ac40A23E7F5F2c</a></p>
+    <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=ethereum:0x896d8d26417DfeE7a49B75aa68ac40A23E7F5F2c" alt="ETH QR Code">
   </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/RecordRTC/5.6.2/RecordRTC.min.js"></script>
 <script>
@@ -739,6 +773,29 @@ function updateScaleColor() {
   dateDisplay.style.color = `hsl(${(hue + 180) % 360}, ${saturation}%, ${100 - lightness}%)`;
 
   updateStars(timeOfDay);
+
+  // Create gradient for the last 4 hours
+  const gradient = document.querySelector('.time-gradient');
+  const gradientColors = [];
+  for (let i = 0; i < 5; i++) {
+    const pastTime = new Date(now.getTime() - i * 60 * 60 * 1000);
+    const pastTimeOfDay = calculateTimeOfDay(pastTime, sunTimes);
+    const pastColors = calculateColors(pastTimeOfDay);
+    gradientColors.push(`hsla(${Math.round(pastColors.hue)}, ${Math.round(pastColors.saturation)}%, ${Math.round(pastColors.lightness)}%, 0.5)`);
+  }
+  gradient.style.background = `linear-gradient(to top, ${gradientColors.join(', ')})`;
+}
+
+function calculateTimeOfDay(time, sunTimes) {
+  const { sunrise, sunset } = sunTimes;
+  
+  if (time < sunrise) {
+    return (time - new Date(time.setHours(0,0,0,0))) / (sunrise - new Date(time.setHours(0,0,0,0)));
+  } else if (time > sunset) {
+    return 0.75 + (time - sunset) / (new Date(time.setHours(24,0,0,0)) - sunset) * 0.25;
+  } else {
+    return 0.25 + (time - sunrise) / (sunset - sunrise) * 0.5;
+  }
 }
 
 function calculateColors(timeOfDay) {
@@ -760,10 +817,10 @@ function calculateColors(timeOfDay) {
     lightness = 80 - ((timeOfDay - 0.5) / 0.25) * 30;
     backgroundColor = `hsl(0, 0%, ${70 - (timeOfDay - 0.5) * 160}%)`;
   } else { // Sunset to night
-    hue = 200 + ((timeOfDay - 0.75) / 0.25) * 40;
-    saturation = 40 + ((timeOfDay - 0.75) / 0.25) * 60;
-    lightness = 50 - ((timeOfDay - 0.75) / 0.25) * 30;
-    backgroundColor = `hsl(0, 0%, ${10 - (timeOfDay - 0.75) * 40}%)`;
+    hue = 200 + ((timeOfDay - 0.75) / 0.25) * 60; // Increased to shift more towards yellow
+    saturation = 60 + ((timeOfDay - 0.75) / 0.25) * 40; // Adjusted for warmer tones
+    lightness = 50 - ((timeOfDay - 0.75) / 0.25) * 40; // Darkened evening colors
+    backgroundColor = `hsl(40, 60%, ${20 - (timeOfDay - 0.75) * 40}%)`; // Warmer background
   }
   
   // Increase saturation and lightness for daytime colors
